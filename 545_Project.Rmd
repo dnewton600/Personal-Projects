@@ -1,9 +1,11 @@
 ---
 title: "Stat 545 Project"
-author: "Lorena Maxwell, David Newton"
+author: "David Newton, Lorena Maxwell"
 date: "November 23, 2016"
 output: html_document
 ---
+
+This project was for a statistical computing course. We applied simulated annealing to the travelling salesman problem to get an approximately correct solution. Below is our code; further down are some ggplot visualizations of the results.
 
 ```{r}
 
