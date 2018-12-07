@@ -1,0 +1,118 @@
+---
+title: "Stat 545 Project"
+author: "Lorena Maxwell, David Newton"
+date: "November 23, 2016"
+output: html_document
+---
+
+```{r}
+
+Salesman_SA <- function(n,initial_perm) {
+  
+  temperature <- 1
+  curr_perm <- initial_perm
+  num_cities <- length(initial_perm$cities)
+  
+  #For ggplot
+  paths <- list(initial_perm)
+  counter <- 2
+  total_distances <- rep(0,n)
+  
+  for(ii in 1:n) {
+    temperature <- .99*temperature
+    candidate_perm <- propose_new_perm(curr_perm)
+    curr_path_length <- path_length(curr_perm)
+    candidate_path_length <- path_length(candidate_perm)
+    accept_prob <- calculate_accept_prob(curr_path_length, candidate_path_length, temperature)
+    
+    # -- for ggplot -- #  
+    if(any(ii == c(10,100,500))) {
+      paths[[counter]] <- curr_perm
+      counter <- counter + 1
+    }
+    total_distances[ii] <- curr_path_length
+    #------------------#
+    
+    if(runif(1) < accept_prob ) {
+      curr_perm <- candidate_perm
+    }
+      
+    else {
+      next
+    }
+  }
+  
+  return(list(curr_perm,paths,total_distances))
+  
+}
+
+initialize_perm <- function(num_cities) {
+  perm <- list('cities' = c('start',letters[1:(num_cities-1)]), 'x' = runif(num_cities), 'y' = runif(num_cities))
+  return(perm)
+}
+
+propose_new_perm <- function(curr_perm) {
+  num_cities <- length(curr_perm$cities)
+  indices_to_swap <- sample(2:num_cities,2)
+  
+  for(ii in 1:3) {
+    dummy <- curr_perm[[ii]][ indices_to_swap[1] ]
+    curr_perm[[ii]][indices_to_swap[1]] <- curr_perm[[ii]][indices_to_swap[2]]
+    curr_perm[[ii]][indices_to_swap[2]] <- dummy
+  }
+  
+  return(curr_perm)
+}
+
+path_length <- function(perm) {
+  num_cities <- length(perm$cities)
+  cum_dist <- 0
+  for(ii in 1:(num_cities - 1) ) {
+    x1 <- perm$x[ii]
+    x2 <- perm$x[ii+1]
+    y1 <- perm$y[ii]
+    y2 <- perm$y[ii+1]
+    cum_dist <- cum_dist + sqrt( (x2-x1)^2 + (y2-y1)^2 )
+  }
+  
+  cum_dist <- cum_dist + sqrt( (perm$x[num_cities] - perm$x[1])^2 + (perm$y[num_cities] - perm$y[1])^2 )
+  
+  return(cum_dist)
+}
+
+calculate_accept_prob <- function(curr_path_length, candidate_path_length, temperature) {
+  return( min(1, exp((curr_path_length - candidate_path_length)/temperature) ) )
+}
+
+
+# Testing the algorithm
+set.seed(123)
+my_perm <- initialize_perm(10)
+
+results <- Salesman_SA(1000, my_perm)
+
+solution <- as.data.frame(results[[1]])
+solution[nrow(solution)+1,]<-solution[1,]
+paths <- results[[2]]
+distances <- results[[3]]
+
+```
+
+```{r}
+library(ggplot2)
+
+ggplot(data=solution,aes(x=x,y=y,label=cities))+geom_point()+geom_text(vjust=2)+ggtitle('Map of Cities')
+
+#Plot paths
+for(ii in 1:length(paths)) {
+  cur_path<-as.data.frame(paths[[ii]])
+  cur_path[nrow(cur_path)+1,]<-cur_path[1,]
+  print(ggplot(data=cur_path,aes(x=x,y=y,label=cities))+geom_point()+geom_text(vjust=2)+geom_path() + labs(title=paste("Path Solution for Iteration ",c('1','10','100','500')[ii]) ))
+}
+
+ggplot(data=solution,aes(x=x,y=y,label=cities))+geom_point()+geom_text(vjust=2)+geom_path()+ggtitle('Path Solution for 1000 Iterations')
+
+#Plot distances
+dist_df<-as.data.frame(list('x'=1:length(distances[1:500]),'y'=distances[1:500]))
+ggplot(dist_df,aes(x,y))+geom_path()+xlab('Iteration')+ylab('Distance')+labs(title="Path Distance of Solution for Each Iteration")
+```
